@@ -15,7 +15,6 @@ const startOsmoWs =  async () => {
 }
 
 const startOsmo =  async (datas, interaction, client) => {  
-  
   ws.on('open', function open() {
     ws.send(JSON.stringify({
       "method":"subscribe",
@@ -46,7 +45,7 @@ const startOsmo =  async (datas, interaction, client) => {
           { name: '⬇️ To', value: detailData.receiver },
           { name: '🪙  Amount', value: detailData.amount + ' ' + uDenom, inline: true },
         ]
-        sendDiscordAlert(client, finalData.result.events['tx.hash'][0], msgFields)
+        sendDiscordAlert(client, process.env.OSMO_CHANNEL_IBC, finalData.result.events['tx.hash'][0], msgFields)
         break
 
       case MSG_DELEGATE:
@@ -54,7 +53,7 @@ const startOsmo =  async (datas, interaction, client) => {
           { name: '⬆️ From', value: finalData.result.events['unbond.validator'] },
           { name: '🪙  Amount', value: finalData.result.events['unbond.amount'] },
         ]
-        sendDiscordAlert(client, finalData.result.events['tx.hash'][0], msgFields)
+        sendDiscordAlert(client, process.env.OSMO_CHANNEL_DELEGATE, finalData.result.events['tx.hash'][0], msgFields)
         break
 
       case MSG_UNDELEGATE:
@@ -62,10 +61,10 @@ const startOsmo =  async (datas, interaction, client) => {
           { name: '⬆️ To delegator', value: finalData.result.events['delegate.validator'][0] },
           { name: '🪙  Amount', value: finalData.result.events['delegate.amount'][0] },
         ]
-        sendDiscordAlert(client, finalData.result.events['tx.hash'][0], msgFields)
+        sendDiscordAlert(client, process.env.OSMO_CHANNEL_UNDELEGATE, finalData.result.events['tx.hash'][0], msgFields)
         break
       default:
-        console.log('not supported msg ', finalData.result.events['message.action'][0])
+        //console.log('not supported msg ', finalData.result.events['message.action'][0])
     }     
   })     
 }
@@ -74,9 +73,9 @@ const stopOsmoWs =  async () => {
   ws.close()
 }
 
-function sendDiscordAlert(client, txHash, msgFields) {
+function sendDiscordAlert(client, channel, txHash, msgFields) {
   msg = createDiscordMSG(txHash, msgFields)
-  client.channels.cache.get(process.env.OSMO_CHANNEL_DELEGATE).send({ embeds: [msg] })  
+  client.channels.cache.get(channel).send({ embeds: [msg] })  
 }
 
 function createDiscordMSG(txHash, msgFields) {
