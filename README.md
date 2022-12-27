@@ -72,11 +72,12 @@ _Below is an example of how you can instruct your audience on installing and set
    ```
 3. Enter your config in `.env`
    ```js
-    CLIENT_TOKEN_DISCORD=''
-    WS_OSMOSIS=''
-    OSMO_CHANNEL_IBC=''
-    OSMO_CHANNEL_DELEGATE=''
-    OSMO_CHANNEL_UNDELEGATE=''
+    APP_ID_DISCORD='' // discord application ID
+    CLIENT_TOKEN_DISCORD='' // discord application public key
+    WS_OSMOSIS='' // Osmosis websocket endpoint URL
+    OSMO_CHANNEL_IBC='' // discord ibc channel ID
+    OSMO_CHANNEL_DELEGATE='' // discord delegate channel ID
+    OSMO_CHANNEL_UNDELEGATE='' // discord undelegate channel ID
     OSMO_PRICE=''
    ```
 4. Start your bot
