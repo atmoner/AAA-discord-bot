@@ -5,8 +5,8 @@ const mintscanUrlAccount = 'https://www.mintscan.io/osmosis/account/'
 const mintscanUrlTxs = 'https://www.mintscan.io/osmosis/txs/'
 
 const MSG_TRANSFERT  = '/ibc.applications.transfer.v1.MsgTransfer'
-const MSG_DELEGATE   = '/cosmos.staking.v1beta1.MsgUndelegate'
-const MSG_UNDELEGATE = '/cosmos.staking.v1beta1.MsgDelegate'
+const MSG_DELEGATE   = '/cosmos.staking.v1beta1.MsgDelegate'
+const MSG_UNDELEGATE = '/cosmos.staking.v1beta1.MsgUndelegate'
 
 let ws = ''
 
@@ -15,6 +15,7 @@ const startOsmoWs =  async () => {
 }
 
 const startOsmo =  async (datas, interaction, client) => {  
+
   ws.on('open', function open() {
     ws.send(JSON.stringify({
       "method":"subscribe",
@@ -35,9 +36,11 @@ const startOsmo =  async (datas, interaction, client) => {
       return
     }
 
+    events = finalData.result.events
+
     switch (finalData.result.events['message.action'][0]) {
       case MSG_TRANSFERT:
-        let detailData = JSON.parse(finalData.result.events['send_packet.packet_data'][0])          
+        let detailData = JSON.parse(events['send_packet.packet_data'][0])          
         const uDenom = detailData.denom.split('/')[-1]
   
         msgFields = [
@@ -45,26 +48,26 @@ const startOsmo =  async (datas, interaction, client) => {
           { name: '⬇️ To', value: detailData.receiver },
           { name: '🪙  Amount', value: detailData.amount + ' ' + uDenom, inline: true },
         ]
-        sendDiscordAlert(client, process.env.OSMO_CHANNEL_IBC, finalData.result.events['tx.hash'][0], msgFields)
+        sendDiscordAlert(client, process.env.OSMO_CHANNEL_IBC, 'New IBC Tx', events['tx.hash'][0], msgFields)
         break
 
       case MSG_DELEGATE:
         msgFields = [
-          { name: '⬆️ From', value: finalData.result.events['unbond.validator'] },
-          { name: '🪙  Amount', value: finalData.result.events['unbond.amount'] },
+          { name: '⬆️ To delegator', value: events['delegate.validator'][0] },
+          { name: '🪙  Amount', value: events['delegate.amount'][0] },
         ]
-        sendDiscordAlert(client, process.env.OSMO_CHANNEL_DELEGATE, finalData.result.events['tx.hash'][0], msgFields)
+        sendDiscordAlert(client, process.env.OSMO_CHANNEL_DELEGATE, 'New Delegate', events['tx.hash'][0], msgFields)
         break
 
       case MSG_UNDELEGATE:
         msgFields = [
-          { name: '⬆️ To delegator', value: finalData.result.events['delegate.validator'][0] },
-          { name: '🪙  Amount', value: finalData.result.events['delegate.amount'][0] },
+          { name: '⬆️ From', value: events['unbond.validator'] },
+          { name: '🪙  Amount', value: events['unbond.amount'] },
         ]
-        sendDiscordAlert(client, process.env.OSMO_CHANNEL_UNDELEGATE, finalData.result.events['tx.hash'][0], msgFields)
+        sendDiscordAlert(client, process.env.OSMO_CHANNEL_UNDELEGATE, 'New Undelegate', events['tx.hash'][0], msgFields)
         break
       default:
-        //console.log('not supported msg ', finalData.result.events['message.action'][0])
+        console.log('not supported msg', events['message.action'][0])
     }     
   })     
 }
@@ -73,18 +76,19 @@ const stopOsmoWs =  async () => {
   ws.close()
 }
 
-function sendDiscordAlert(client, channel, txHash, msgFields) {
-  msg = createDiscordMSG(txHash, msgFields)
+function sendDiscordAlert(client, channel, title, txHash, msgFields) {
+  msg = createDiscordMSG(title, txHash, msgFields)
   client.channels.cache.get(channel).send({ embeds: [msg] })  
 }
 
-function createDiscordMSG(txHash, msgFields) {
+function createDiscordMSG(title, txHash, msgFields) {
   const msg = new EmbedBuilder()
   .setColor(0x0099FF)
-  .setAuthor({ name: 'New IBC Tx', iconURL: 'https://coindataflow.com/uploads/coins/osmosis.png', url: mintscanUrlTxs+'/'+txHash })
+  .setAuthor({ name: title, iconURL: 'https://coindataflow.com/uploads/coins/osmosis.png', url: mintscanUrlTxs+'/'+txHash })
   .setDescription('A new transaction has been detected! \nFind all the information relating to this transaction below')
   .setThumbnail('https://coindataflow.com/uploads/coins/osmosis.png')
-  .addFields(...msgFields, { name: '🔗  Tx hash', value: txHash })
+  .addFields(...msgFields)
+  .addFields({ name: '🔗  Tx hash', value: txHash })
   .setTimestamp()
   .setFooter({ text: 'AAA MetaHuahua', iconURL: 'https://d1fdloi71mui9q.cloudfront.net/YpCdNy3jRSycdDR8FQEN_0Wq62yUa4yV6dBuf' });
   return msg
